@@ -59,35 +59,26 @@ export default function SwitchProfileScreen() {
     });
   };
 
-  const removeAccount = async () => {
-    if (!removeTarget) return;
+ const removeAccount = async () => {
+  if (!removeTarget) return;
 
-    Alert.alert(
-      'Remove account?',
-      `This will delete ${removeTarget.username} and all its tasks.`,
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => setRemoveTarget(null) },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            const updatedUsers = users.filter(u => u.email !== removeTarget.email);
-            setUsers(updatedUsers);
-            await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-            await AsyncStorage.removeItem(TASK_KEY_PREFIX + removeTarget.email);
+  const updatedUsers = users.filter(
+    u => u.email !== removeTarget.email
+  );
 
-            const current = await AsyncStorage.getItem(CURRENT_USER);
-            if (current === removeTarget.email) {
-              await AsyncStorage.removeItem(CURRENT_USER);
-              router.replace('/');
-            }
+  setUsers(updatedUsers);
+  await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+  await AsyncStorage.removeItem(TASK_KEY_PREFIX + removeTarget.email);
 
-            setRemoveTarget(null);
-          },
-        },
-      ]
-    );
-  };
+  const current = await AsyncStorage.getItem(CURRENT_USER);
+  if (current === removeTarget.email) {
+    await AsyncStorage.removeItem(CURRENT_USER);
+    router.replace('/');
+  }
+
+  setRemoveTarget(null);
+};
+
 
   const renderItem = ({ item }: { item: User }) => (
     <Animated.View style={{ transform: [{ scale: animScale }] }}>
@@ -137,6 +128,16 @@ export default function SwitchProfileScreen() {
             <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
               <Text style={[styles.modalText, { color: colors.text }]}>
                 Remove account {removeTarget?.username}?
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: colors.icon,
+                  marginBottom: 20,
+                  textAlign: 'center',
+                }}
+              >
+                this will delete all associated data.
               </Text>
 
               <View style={styles.modalButtons}>
