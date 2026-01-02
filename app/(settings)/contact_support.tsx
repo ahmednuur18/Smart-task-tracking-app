@@ -1,9 +1,32 @@
+/*
+====================================================
+CONTACT SUPPORT SCREEN
+====================================================
+
+This screen allows the user to contact support by:
+
+1. Selecting one or more predefined issues.
+2. Writing a message describing the problem.
+3. Sending the selected issues and message to support (currently logged in console).
+
+Key features:
+
+- KeyboardAvoidingView ensures the input field is visible above the keyboard.
+- FlatList displays the list of issues in two columns.
+- Selected issues are highlighted.
+- Bottom input bar supports multiline messages.
+- Send button is enabled only when at least one issue is selected and message is not empty.
+- Uses useState to manage selected issues and message.
+- ThemeContext is used for consistent colors across the app.
+*/
+
 import { View, Text, TouchableOpacity, TextInput, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/constants/ThemeContext';
 import { useState } from 'react';
 
+/* ---------- constants ---------- */
 const ISSUES = [
   'Login problem',
   'Tasks not saving',
@@ -18,6 +41,19 @@ const ISSUES = [
 ];
 
 const GREEN = '#23C762';
+
+/*
+====================================================
+MAIN COMPONENT
+====================================================
+
+ContactSupportScreen handles:
+
+1. selectedIssues - array of issues the user selects.
+2. message - text typed by the user describing the problem.
+3. toggleIssue function to add/remove issues from selection.
+4. canSend boolean to determine if the send button should be active.
+*/
 
 export default function ContactSupportScreen() {
   const router = useRouter();
@@ -35,6 +71,20 @@ export default function ContactSupportScreen() {
   };
 
   const canSend = selectedIssues.length > 0 && message.trim().length > 0;
+
+  /*
+  =====================================================
+  RENDERING
+  =====================================================
+
+  1. KeyboardAvoidingView ensures bottom input is visible when keyboard opens.
+  2. Header: back button and screen title.
+  3. FlatList displays selectable issues in two columns with highlights for selected items.
+  4. Bottom input bar contains:
+     - TextInput for user message.
+     - Send button, which is disabled if no issues or empty message.
+  5. Styling and colors are consistent with theme.
+  */
 
   return (
     <KeyboardAvoidingView
@@ -181,7 +231,7 @@ export default function ContactSupportScreen() {
         <TouchableOpacity
           onPress={() => {
             if (canSend) {
-              // handle send message here
+              // Currently just logs to console
               console.log({ selectedIssues, message });
               setMessage('');
               setSelectedIssues([]);

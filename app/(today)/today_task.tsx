@@ -1,3 +1,20 @@
+/*
+====================================================
+TODAY TASKS SCREEN
+====================================================
+
+This screen shows all tasks for the current user. Users can see tasks by priority, upcoming, and completed sections. 
+It also provides features like searching, category filtering, toggling task completion, reminders, deleting tasks, and opening tasks for editing. 
+
+- React and React Native hooks manage state, side-effects, and refs.
+- AsyncStorage stores users and tasks locally.
+- Animated and Modal handle notifications and custom delete modal.
+- MaterialIcons displays icons for buttons and indicators.
+- useTheme applies dynamic colors for light/dark mode.
+- CATEGORIES, AVATARS, and constants define UI options.
+- Each section below has a detailed explanation of what it does and how it works.
+*/
+
 import React, {
   useState,
   useCallback,
@@ -49,7 +66,18 @@ type User = {
   avatar?: string;
 };
 
-/* ---------- helpers ---------- */
+/*
+====================================================
+HELPER FUNCTIONS
+====================================================
+
+These functions are reusable utilities to simplify task rendering and logic:
+
+1. formatDate: Converts ISO date string to readable format (e.g., "Mon, 2 Jan") for display.
+2. priorityColor: Returns color based on task priority for UI highlighting.
+3. getTaskDateTime: Combines a task’s dueDate and time into a single Date object for reminders and comparisons.
+*/
+
 const formatDate = (iso: string | null) => {
   if (!iso) return '';
   const d = new Date(iso);
@@ -71,7 +99,29 @@ const getTaskDateTime = (task: Task) => {
   return d;
 };
 
-/* ---------- component ---------- */
+/*
+====================================================
+MAIN COMPONENT
+====================================================
+
+TodayTasks component manages the entire screen:
+
+- State hooks handle tasks, user profile, search query, selected category, notification banner, and delete modal.
+- bannerAnim and showBanner manage the animated notification banner for reminders.
+- getTaskKey returns unique AsyncStorage key for the current user.
+- loadProfile fetches user info (avatar, username) from storage.
+- loadTasks fetches current user's tasks from storage.
+- useFocusEffect reloads profile and tasks every time screen is focused.
+- Reminder timer checks every 30 seconds for tasks past due and shows banner once.
+- toggleTask toggles completion of a task and updates AsyncStorage.
+- deleteTask removes a task from list and storage.
+- filteredTasks filters by category and search query.
+- sortByPriority orders tasks by priority for display.
+- priorityTasks, upcomingTasks, doneTasks categorize tasks for sections.
+- openTask navigates to task editing screen.
+- renderTask displays a single task card with all details, icons, and press actions.
+*/
+
 export default function TodayTasks() {
   const { colors } = useTheme();
 
@@ -80,7 +130,7 @@ export default function TodayTasks() {
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  /* 🔔 notification banner */
+  /* 🔔 Notification banner animation setup */
   const bannerAnim = useRef(new Animated.Value(-90)).current;
   const [bannerText, setBannerText] = useState('');
   const alertedRef = useRef<Set<string>>(new Set());
@@ -102,7 +152,7 @@ export default function TodayTasks() {
     ]).start();
   };
 
-  /* 🗑 delete modal */
+  /* 🗑 Delete modal state */
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const getTaskKey = async () => {
@@ -134,7 +184,16 @@ export default function TodayTasks() {
     }, [])
   );
 
-  /* ⏰ reminder timer */
+  /*
+  =====================================================
+  REMINDER TIMER
+  =====================================================
+
+  Checks every 30 seconds for incomplete tasks that are past due.
+  Ensures banner shows only once per task using alertedRef.
+  This gives a visual reminder to the user when a task's due date/time is reached.
+  */
+
   useEffect(() => {
     const timer = setInterval(() => {
       const now = Date.now();
@@ -150,6 +209,20 @@ export default function TodayTasks() {
 
     return () => clearInterval(timer);
   }, [tasks]);
+
+  /*
+  =====================================================
+  TASK ACTIONS
+  =====================================================
+
+  toggleTask: Toggles task completion and updates storage.
+  deleteTask: Deletes selected task and updates storage.
+  filteredTasks: Filters tasks by selected category and search query.
+  sortByPriority: Sorts tasks by priority for display.
+  priorityTasks, upcomingTasks, doneTasks: Categorize tasks for sections.
+  openTask: Opens a task in the NewTask screen.
+  renderTask: Returns a Pressable card for a single task, with completion toggle, note, due date/time, and styles.
+  */
 
   const toggleTask = async (id: string) => {
     const updated = tasks.map(t =>
@@ -252,9 +325,22 @@ export default function TodayTasks() {
     </Pressable>
   );
 
+  /*
+  =====================================================
+  UI RENDERING
+  =====================================================
+
+  - Animated notification banner slides down when task reminder occurs.
+  - Header shows user avatar, screen title, and settings button.
+  - Search box filters tasks by title.
+  - Categories horizontally scrollable; shows count badge for each category.
+  - Task sections display priority, upcoming, and done tasks.
+  - Floating Add button navigates to NewTask screen.
+  - Delete modal confirms task deletion with Cancel/Remove options.
+  */
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      {/* 🔔 Notification banner */}
       <Animated.View
         style={[
           styles.banner,
@@ -267,7 +353,6 @@ export default function TodayTasks() {
         </Text>
       </Animated.View>
 
-      {/* Header */}
       <View style={styles.header}>
         {profile?.avatar ? (
           <Pressable onPress={() => router.push('/(profile)/profile')}>
@@ -286,7 +371,6 @@ export default function TodayTasks() {
         </Pressable>
       </View>
 
-      {/* Search */}
       <View style={[styles.searchBox, { backgroundColor: colors.card }]}>
         <MaterialIcons name="search" size={20} color={colors.icon} />
         <TextInput
@@ -298,7 +382,6 @@ export default function TodayTasks() {
         />
       </View>
 
-      {/* Categories */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories}>
         {CATEGORIES.map(c => (
           <Pressable
@@ -329,7 +412,6 @@ export default function TodayTasks() {
         ))}
       </ScrollView>
 
-      {/* Tasks */}
       <ScrollView style={{ flex: 1, paddingBottom: 630 }}>
         {priorityTasks.length > 0 && (
           <View style={styles.section}>
@@ -359,7 +441,6 @@ export default function TodayTasks() {
         )}
       </ScrollView>
 
-      {/* Add button */}
       <Pressable
         style={[styles.fab, { backgroundColor: PRIMARY }]}
         onPress={() => router.push('/(todo)/new_task')}
@@ -367,7 +448,6 @@ export default function TodayTasks() {
         <MaterialIcons name="add" size={32} color="#fff" />
       </Pressable>
 
-      {/* 🗑 Custom delete modal */}
       <Modal transparent visible={!!deleteId} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalBox, { backgroundColor: colors.card }]}>
@@ -395,7 +475,6 @@ export default function TodayTasks() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
 
-  /* banner */
   banner: {
     position: 'absolute',
     top: 0,
@@ -487,7 +566,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 
-  /* modal */
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',

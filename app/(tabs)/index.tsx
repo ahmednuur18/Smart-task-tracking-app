@@ -1,4 +1,3 @@
-// app/index.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -13,25 +12,57 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+/*
+Defines possible screen modes.
+Used to switch between Login and Signup UI.
+*/
 type Mode = 'login' | 'signup';
 
+/*
+Defines how a user object looks.
+This structure is saved in AsyncStorage.
+*/
 type User = {
   username: string;
   email: string;
   password: string;
 };
 
+/*
+App constants:
+- STORAGE_KEY: key for saving users list
+- PRIMARY: main app color
+- BG: background color
+*/
 const STORAGE_KEY = 'APP_USERS';
 const PRIMARY = '#23c762';
 const BG = '#f6f8f7';
 
 export default function AuthScreen() {
+
+  /*
+  State management for authentication screen.
+
+  - mode: controls login or signup screen
+  - passwordVisible: toggles password visibility
+  - username, email, password: store user inputs
+  */
   const [mode, setMode] = useState<Mode>('login');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  /*
+  This effect runs when mode changes (login ↔ signup).
+
+  What it does:
+  - Clears all input fields
+  - Resets password visibility
+
+  Important:
+  - Dependency array [mode] means it runs only when mode changes
+  */
   useEffect(() => {
     setUsername('');
     setEmail('');
@@ -39,101 +70,163 @@ export default function AuthScreen() {
     setPasswordVisible(false);
   }, [mode]);
 
+  /*
+  Utility function to validate email format.
+
+  Important:
+  - Uses regex to check basic email structure
+  - Returns true or false
+  */
   const isValidEmail = (value: string) => /\S+@\S+\.\S+/.test(value);
 
+  /*
+  Reads all registered users from AsyncStorage.
+
+  What it does:
+  - Gets stored user data using STORAGE_KEY
+  - Parses JSON if data exists
+  - Returns empty array if no users found
+  */
   const getUsers = async (): Promise<User[]> => {
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored) : [];
   };
 
-const handleSignup = async () => {
-  if (!username || !email || !password) {
-    Alert.alert('Error', 'All fields are required');
-    return;
-  }
+  /*
+  Handles user signup process.
 
-  if (!isValidEmail(email)) {
-    Alert.alert('Error', 'Invalid email format');
-    return;
-  }
+  What it does (general):
+  - Validates inputs
+  - Prevents duplicate emails
+  - Saves new user to storage
+  - Logs user in automatically
+  - Navigates to main app screen
 
-  if (password.length < 7) {
-    Alert.alert('Error', 'Password must be at least 7 characters');
-    return;
-  }
+  Important lines:
+  - Input validation using alerts
+  - getUsers() to check existing users
+  - AsyncStorage.setItem to save users
+  - router.replace to move to next screen
+  */
+  const handleSignup = async () => {
+    if (!username || !email || !password) {
+      Alert.alert('Error', 'All fields are required');
+      return;
+    }
 
-  const users = await getUsers();
+    if (!isValidEmail(email)) {
+      Alert.alert('Error', 'Invalid email format');
+      return;
+    }
 
-  if (users.some(u => u.email === email)) {
-    Alert.alert('Error', 'Email already registered');
-    return;
-  }
+    if (password.length < 7) {
+      Alert.alert('Error', 'Password must be at least 7 characters');
+      return;
+    }
 
-  const newUser = { username, email, password };
-  users.push(newUser);
+    const users = await getUsers();
 
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+    if (users.some(u => u.email === email)) {
+      Alert.alert('Error', 'Email already registered');
+      return;
+    }
 
-  await AsyncStorage.setItem('CURRENT_USER', email);
+    const newUser = { username, email, password };
+    users.push(newUser);
 
-  Alert.alert('Success', 'Account created successfully');
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+    await AsyncStorage.setItem('CURRENT_USER', email);
 
-  router.replace('/(today)/today_task');
-};
+    Alert.alert('Success', 'Account created successfully');
 
+    router.replace('/(today)/today_task');
+  };
 
+  /*
+  Handles user login process.
+
+  What it does (general):
+  - Checks input fields
+  - Verifies email and password
+  - Saves logged-in user
+  - Navigates to main app screen
+
+  Important lines:
+  - users.find() checks credentials
+  - CURRENT_USER is saved for session
+  - router.replace changes screen
+  */
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Email and password are required');
       return;
     }
+
     const users = await getUsers();
-    const user = users.find(u => u.email === email && u.password === password);
+
+    const user = users.find(
+      u => u.email === email && u.password === password
+    );
+
     if (!user) {
       Alert.alert('Error', 'Incorrect email or password');
       return;
     }
+
     await AsyncStorage.setItem('CURRENT_USER', user.email);
     router.replace('/(today)/today_task');
   };
 
+  /*
+  UI rendering section.
+
+  What it does:
+  - Displays logo, title, and subtitle
+  - Switches between login and signup UI
+  - Shows form inputs
+  - Handles navigation and user actions
+  */
   return (
     <ScrollView contentContainerStyle={styles.root}>
       <View style={styles.container}>
-        {/* Logo */}
+
         <View style={styles.logoWrapper}>
           <View style={styles.logo}>
             <MaterialIcons name="task-alt" size={32} color="#fff" />
           </View>
         </View>
-
-        {/* Header */}
+        
         <Text style={styles.title}>
           {mode === 'login' ? 'Welcome Back' : 'Create Account'}
         </Text>
+
         <Text style={styles.subtitle}>
           {mode === 'login'
             ? 'Log in to manage your tasks.'
             : 'Sign up to start managing tasks.'}
         </Text>
 
-        {/* Switch */}
+
         <View style={styles.segment}>
           <Pressable
             style={[styles.segmentBtn, mode === 'login' && styles.activeBtn]}
             onPress={() => setMode('login')}
           >
-            <Text style={mode === 'login' ? styles.activeText : styles.text}>Log In</Text>
+            <Text style={mode === 'login' ? styles.activeText : styles.text}>
+              Log In
+            </Text>
           </Pressable>
+
           <Pressable
             style={[styles.segmentBtn, mode === 'signup' && styles.activeBtn]}
             onPress={() => setMode('signup')}
           >
-            <Text style={mode === 'signup' ? styles.activeText : styles.text}>Sign Up</Text>
+            <Text style={mode === 'signup' ? styles.activeText : styles.text}>
+              Sign Up
+            </Text>
           </Pressable>
         </View>
 
-        {/* Form */}
         <View style={styles.form}>
           {mode === 'signup' && (
             <>
@@ -175,14 +268,14 @@ const handleSignup = async () => {
           </View>
         </View>
 
-        {/* Forgot Password */}
+
         {mode === 'login' && (
           <Pressable onPress={() => router.push('/forgot')}>
             <Text style={styles.forgot}>Forgot password?</Text>
           </Pressable>
         )}
 
-        {/* Button */}
+
         <Pressable
           style={styles.button}
           onPress={mode === 'login' ? handleLogin : handleSignup}
@@ -191,10 +284,12 @@ const handleSignup = async () => {
             {mode === 'login' ? 'Log In' : 'Sign Up'}
           </Text>
         </Pressable>
+
       </View>
     </ScrollView>
   );
 }
+
 
 const styles = StyleSheet.create({
   root: { minHeight: '100%', backgroundColor: BG },

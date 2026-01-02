@@ -1,3 +1,22 @@
+/*
+====================================================
+REACT NATIVE TASK SCREEN
+====================================================
+
+This screen allows users to create or edit tasks. It uses React Native with hooks, AsyncStorage, DateTimePicker, and dynamic theme support. Each main section below has a detailed explanation of what it does and how the lines inside it work together.
+
+- React imports manage state and lifecycle.
+- React Native imports handle UI, scrolling, keyboard avoidance, and alerts.
+- MaterialIcons provides icons for buttons and indicators.
+- expo-router handles navigation and route parameters (task id for editing).
+- AsyncStorage stores tasks locally per user.
+- DateTimePicker allows selecting date and time on mobile.
+- useTheme dynamically applies colors for light/dark mode.
+- Constants define colors, categories, storage prefixes, and styling.
+- StoredTask type defines the structure of a task to ensure consistency when saving and loading.
+
+*/
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -32,6 +51,21 @@ type StoredTask = {
   time: string;
 };
 
+/*
+====================================================
+MAIN COMPONENT AND STATE
+====================================================
+
+This component manages the full task screen. We define all the states needed to handle user input, selections, and UI flags. 
+- title and note store the text input values.
+- priority and category store selected options for the task.
+- dueDate and time store date and time information.
+- showCalendar and showTime control visibility of native pickers.
+- getKey retrieves a unique AsyncStorage key for the current user to isolate their tasks.
+
+useEffect runs once when editing an existing task. It loads all tasks, finds the matching one by id, and sets all states so the form shows current values. This ensures editing works correctly.
+*/
+
 export default function NewTask() {
   const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -59,6 +93,7 @@ export default function NewTask() {
 
       const raw = await AsyncStorage.getItem(key);
       const tasks: StoredTask[] = raw ? JSON.parse(raw) : [];
+
       const task = tasks.find(t => t.id === id);
       if (!task) return;
 
@@ -72,6 +107,20 @@ export default function NewTask() {
       setTime({ hours: h, minutes: m });
     })();
   }, [id]);
+
+  /*
+  =====================================================
+  DATE AND TIME HANDLERS
+  =====================================================
+
+  selectToday sets the task due date to the current date and time. 
+  On web, we ask the user to enter the time because native pickers are not available.
+  On mobile, we get hours and minutes from the current time and show the time picker.
+
+  pickDate allows the user to manually choose date and time. On mobile, it shows the native calendar picker.
+  On web, it prompts the user to enter date and time manually.
+  These functions ensure tasks always have a valid date and time.
+  */
 
   const selectToday = () => {
     const now = new Date();
@@ -106,6 +155,18 @@ export default function NewTask() {
 
     setShowCalendar(true);
   };
+
+  /*
+  =====================================================
+  SAVE TASK FUNCTION
+  =====================================================
+
+  saveTask validates user input (title and date). If invalid, it shows an alert.
+  It then loads the user's tasks from AsyncStorage.
+  If editing, it updates the existing task, otherwise, it creates a new one.
+  The task is then saved back to AsyncStorage using the user's unique key.
+  Finally, the router navigates back to the previous screen.
+  */
 
   const saveTask = async () => {
     if (!title.trim()) {
@@ -147,10 +208,23 @@ export default function NewTask() {
     router.back();
   };
 
+  /*
+  =====================================================
+  UI RENDERING
+  =====================================================
+
+  The whole screen is wrapped in KeyboardAvoidingView to push content up when the keyboard appears.
+  The header contains a back button, the title, and spacing for symmetry.
+  ScrollView contains the main task form: title input, category selection, due date buttons, date/time pickers, and priority buttons.
+  The bottom notes container is fixed, with a multiline TextInput and a send button. The TextInput scrolls internally if the content is large and stops expanding after max height.
+  Styles handle layout, colors, padding, borders, and font sizes to make the page look clean and responsive.
+  */
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
     >
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
@@ -166,7 +240,7 @@ export default function NewTask() {
         </View>
 
         <ScrollView
-          contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 140 }}
           keyboardShouldPersistTaps="handled"
         >
           <Text style={[styles.title, { color: colors.text }]}>
@@ -178,7 +252,7 @@ export default function NewTask() {
             onChangeText={setTitle}
             placeholder="Task title"
             placeholderTextColor={colors.icon}
-            style={[styles.input, { backgroundColor: colors.card, color: colors.text, }]}
+            style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
           />
 
           <Text style={styles.section}>CATEGORY</Text>
@@ -291,22 +365,24 @@ export default function NewTask() {
               </Pressable>
             ))}
           </View>
-
-          <Text style={[styles.section, { marginTop: 19 }]}>NOTES</Text>
-          <View style={styles.notesRow}>
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              multiline
-              placeholder="Add details..."
-              placeholderTextColor={colors.icon}
-              style={[styles.notes, { backgroundColor: colors.card, color: colors.text },]}
-            />
-            <Pressable style={styles.sendBtn} onPress={saveTask}>
-              <MaterialIcons name="send" size={22} color="#000" />
-            </Pressable>
-          </View>
         </ScrollView>
+          <Text style={[styles.section, {marginLeft:18}]}>NOTES</Text>
+
+        <View style={[styles.notesContainer, { backgroundColor: colors.background }]}>
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            multiline
+            scrollEnabled={true}
+            textAlignVertical="top"
+            placeholder="Add details..."
+            placeholderTextColor={colors.icon}
+            style={[styles.notes, { backgroundColor: colors.card, color: colors.text }]}
+          />
+          <Pressable style={styles.sendBtn} onPress={saveTask}>
+            <MaterialIcons name="send" size={22} color="#000" />
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -377,15 +453,19 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
 
-  notesRow: {
+  notesContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 10,
+    padding: 12,
+    borderTopWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
 
   notes: {
     flex: 1,
     minHeight: 60,
+    maxHeight: 110,
     borderRadius: 29,
     padding: 10,
     fontSize: 14,

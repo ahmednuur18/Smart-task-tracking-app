@@ -1,3 +1,16 @@
+/*
+========================================
+IMPORT SECTION
+========================================
+This section imports all the required modules and utilities:
+
+- React hooks for state and lifecycle management
+- React Native components to build the UI
+- AsyncStorage for local persistent storage
+- Expo router for navigation
+- Icons from MaterialIcons
+- ThemeContext for dynamic color theming
+*/
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -15,6 +28,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTheme } from '@/constants/ThemeContext';
 
+/*
+========================================
+CONSTANTS & STATIC DATA
+========================================
+- Users storage keys
+- Primary theme color
+- Avatar images mapping
+*/
 type User = {
   username: string;
   email: string;
@@ -26,20 +47,47 @@ const USERS_KEY = 'APP_USERS';
 const CURRENT_USER = 'CURRENT_USER';
 const PRIMARY = '#23C762';
 
-/* ---------------- AVATARS ---------------- */
+/* ---------------- AVATARS ----------------
+Static mapping of avatar names to local image files.
+Used for profile picture selection.
+*/
 const AVATARS: Record<string, any> = {
   male1: require('../avatar/male1.png'),
   female1: require('../avatar/female1.png'),
 };
 
+/*
+========================================
+MAIN COMPONENT: ProfileScreen
+========================================
+Displays the current user’s profile and allows:
+- Editing username
+- Changing avatar
+- Logging out
+- Optionally linking to account management (removed duplicate)
+*/
 export default function ProfileScreen() {
   const { colors } = useTheme();
 
+  /*
+  STATE MANAGEMENT
+  ----------------
+  - user: currently logged-in user
+  - name: editable username
+  - originalName: stores original username for change detection
+  - modalVisible: toggles avatar selection modal
+  */
   const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState('');
   const [originalName, setOriginalName] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
 
+  /*
+  LOAD USER
+  ----------
+  Runs on component mount to fetch current user from AsyncStorage
+  If no user is found, redirect to login screen
+  */
   useEffect(() => {
     loadUser();
   }, []);
@@ -59,6 +107,12 @@ export default function ProfileScreen() {
     }
   };
 
+  /*
+  SAVE NAME
+  ----------
+  Updates username in AsyncStorage and local state
+  Only triggers if the name was changed
+  */
   const saveName = async () => {
     if (!user || name.trim() === originalName) return;
 
@@ -75,11 +129,21 @@ export default function ProfileScreen() {
     setOriginalName(name.trim());
   };
 
+  /*
+  LOGOUT
+  -------
+  Removes current user from AsyncStorage and navigates to login
+  */
   const logout = async () => {
     await AsyncStorage.removeItem(CURRENT_USER);
     router.replace('/');
   };
 
+  /*
+  SAVE AVATAR
+  -----------
+  Updates user avatar in AsyncStorage and local state
+  */
   const saveAvatar = async (avatarKey: string) => {
     if (!user) return;
 
@@ -101,7 +165,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      {/* Header */}
+      {/* ================= HEADER ================= */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()}>
           <MaterialIcons name="arrow-back-ios-new" size={24} color={colors.text} />
@@ -111,47 +175,47 @@ export default function ProfileScreen() {
           Personal
         </Text>
 
+        {/* Placeholder for alignment */}
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Profile Avatar */}
-     <View style={styles.center}>
-  <View
-    style={[
-      styles.avatarContainer,
-      { borderColor: colors.card },
-    ]}
-  >
-    <Image
-      source={AVATARS[user.avatar || 'male1']}
-      style={styles.avatar}
-    />
+      {/* ================= PROFILE AVATAR ================= */}
+      <View style={styles.center}>
+        <View
+          style={[
+            styles.avatarContainer,
+            { borderColor: colors.card },
+          ]}
+        >
+          <Image
+            source={AVATARS[user.avatar || 'male1']}
+            style={styles.avatar}
+          />
 
-    <Pressable
-      style={[styles.editIcon, { backgroundColor: PRIMARY }]}
-      onPress={() => setModalVisible(true)}
-    >
-      <MaterialIcons name="edit" size={18} color="#fff" />
-    </Pressable>
-  </View>
+          <Pressable
+            style={[styles.editIcon, { backgroundColor: PRIMARY }]}
+            onPress={() => setModalVisible(true)}
+          >
+            <MaterialIcons name="edit" size={18} color="#fff" />
+          </Pressable>
+        </View>
 
-  {/* Edit Profile text */}
-  <Pressable onPress={() => setModalVisible(true)}>
-    <Text
-      style={{
-        marginTop: 12,
-        fontSize: 13,
-        fontWeight: '600',
-        color: colors.icon,
-      }}
-    >
-      Edit Profile
-    </Text>
-  </Pressable>
-</View>
+        {/* Edit Profile Text */}
+        <Pressable onPress={() => setModalVisible(true)}>
+          <Text
+            style={{
+              marginTop: 12,
+              fontSize: 13,
+              fontWeight: '600',
+              color: colors.icon,
+            }}
+          >
+            Edit Profile
+          </Text>
+        </Pressable>
+      </View>
 
-
-      {/* Form */}
+      {/* ================= FORM ================= */}
       <View style={styles.form}>
         {/* Full Name (Editable) */}
         <Text style={[styles.label, { color: colors.text }]}>
@@ -185,7 +249,7 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Save Changes Button (ONLY when name changed) */}
+      {/* ================= SAVE BUTTON ================= */}
       {hasNameChanged && (
         <Pressable
           style={[styles.saveBtn, { backgroundColor: PRIMARY }]}
@@ -195,17 +259,10 @@ export default function ProfileScreen() {
         </Pressable>
       )}
 
-      {/* Actions */}
+      {/* ================= ACTIONS ================= */}
       <View style={styles.actions}>
-        <Pressable
-          style={[styles.secondaryBtn, { borderColor: colors.icon }]}
-          onPress={() => router.replace('/(profile)/switch_profile')}
-        >
-          <MaterialIcons name="swap-horiz" size={22} color={colors.text} />
-          <Text style={[styles.secondaryText, { color: colors.text }]}>
-            Change Profile
-          </Text>
-        </Pressable>
+        {/* Removed duplicate "Change Profile" since account management exists in Settings */}
+        <View style={{ height: 56 }} />
 
         <Pressable
           style={[styles.logoutBtn, { backgroundColor: PRIMARY }]}
@@ -216,7 +273,7 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      {/* Avatar Modal */}
+      {/* ================= AVATAR MODAL ================= */}
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalRoot}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
@@ -251,8 +308,10 @@ export default function ProfileScreen() {
   );
 }
 
-/* ---------------- STYLES ---------------- */
-
+/* ================= STYLES =================
+Defines layout, typography, colors, and spacing
+for all elements in the ProfileScreen.
+*/
 const styles = StyleSheet.create({
   root: { flex: 1 },
 
@@ -341,20 +400,6 @@ const styles = StyleSheet.create({
     marginTop: 32,
     paddingHorizontal: 20,
     gap: 12,
-  },
-
-  secondaryBtn: {
-    flexDirection: 'row',
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-  },
-
-  secondaryText: {
-    fontWeight: '600',
   },
 
   logoutBtn: {
